@@ -1,9 +1,6 @@
 
-library(rvest)
-library(httr)
-library(tidyverse)
-library(parallel)
-library(stringr)
+if(!"pacman"%in%installed.packages())install.packages("pacman")
+pacman::p_load(rvest, httr, tidyverse, parallel, stringr)
 
 if(!dir.exists("raw_html")){
   dir.create("raw_html")
@@ -35,10 +32,15 @@ if(file.exists("already_downloaded.csv")){
 }
 
 
-not_yet_downloaded <- all_links[!basename(all_links) %in% already_downloaded$link]
-not_yet_downloaded <- not_yet_downloaded[1:10]
+not_yet_downloaded <- all_links[!all_links %in% already_downloaded$link]
 
-out_list <- list()
+if(!file.exists("raw_html/all_xml.rds")){
+  out_list <- list()
+} else {
+  out_list <- read_rds("raw_html/all_xml.rds")
+}
+
+
 for(ii in 1:length(not_yet_downloaded)){
   # ii <- 1
   message("#=======> ",ii," of ",length(not_yet_downloaded))
@@ -60,6 +62,7 @@ for(ii in 1:length(not_yet_downloaded)){
     next
   } else {
     raw_html <- read_html(res)
+    write_html(raw_html, paste0("raw_html/",str_replace_all(gsub("https://www.expedia.co.uk/","",link),"[?]chkin=.*.&chkout=.*.",""),".html"))
     out_list[[ii]] <- raw_html
     if(!file.exists("already_downloaded.csv")){
       write_csv(data_frame(link), "already_downloaded.csv", append = F)
@@ -70,13 +73,11 @@ for(ii in 1:length(not_yet_downloaded)){
   
   
   
-  write_rds(out_list, "raw_html/all_xml.rds")
+  write_rds(out_list, "all_xml.rds")
 }
 
 # file.remove("raw_html/all_xml.rds")
 # file.remove("already_downloaded.csv")
-
-out_list %>% map(function(x) html_text(html_nodes(x,"#hotel-amenities"))) %>% map(~substr(.x,1,30)) 
 
 
 
